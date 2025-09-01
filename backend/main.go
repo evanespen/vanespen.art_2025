@@ -1,20 +1,23 @@
 package main
 
 import (
+	"github.com/evanespen/vanespen.art_2025/configs"
+	"github.com/evanespen/vanespen.art_2025/internal/albums"
 	"github.com/evanespen/vanespen.art_2025/internal/api"
+	"github.com/evanespen/vanespen.art_2025/internal/pictures"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	router := gin.Default()
+	router := api.GetRouter()
+	adminRouter := api.GetAdminRouter()
 
-	router.GET("/pictures", api.GetAllPictures)
-	router.GET("/pictures/:uuid", api.GetOnePicture)
-	router.POST("/admin/upload", api.UploadPictures)
+	router.GET("/alive", func(context *gin.Context) {
+		context.Status(200)
+	})
 
-	router.GET("/albums", api.GetAllAlbums)
-	router.GET("/albums/:uuid", api.GetOneAlbum)
-	router.POST("/admin/albums", api.PostAlbum)
+	pictures.BindRoutes(router, adminRouter)
+	albums.BindRoutes(router, adminRouter)
 
-	router.Run(":8080")
+	router.Run(configs.APIHost)
 }
