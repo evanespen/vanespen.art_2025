@@ -1,4 +1,4 @@
-package main
+package configs
 
 const StashDir = "/tmp/stash"
 const FullResDir = "STORAGE/full"

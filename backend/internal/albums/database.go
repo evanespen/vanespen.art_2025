@@ -1,8 +1,9 @@
-package main
+package albums
 
 import (
 	"errors"
 	"fmt"
+	"github.com/evanespen/vanespen.art_2025/configs"
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/parquet"
 	"github.com/xitongsys/parquet-go/reader"
@@ -11,21 +12,21 @@ import (
 	"os"
 )
 
-func AppendAlbum(album Album) {
-	if _, err := os.Stat(AlbumsDatabaseFile); err == nil {
-		albums, err := ReadAlbums()
+func Append(album Album) {
+	if _, err := os.Stat(configs.AlbumsDatabaseFile); err == nil {
+		albums, err := Read()
 		if err != nil {
 			log.Println(err, err)
 		}
 		albums = append(albums, album)
-		WriteAlbums(albums)
+		Write(albums)
 	} else {
-		WriteAlbums([]Album{album})
+		Write([]Album{album})
 	}
 }
 
-func WriteAlbums(albums []Album) {
-	fw, err := local.NewLocalFileWriter(AlbumsDatabaseFile)
+func Write(albums []Album) {
+	fw, err := local.NewLocalFileWriter(configs.AlbumsDatabaseFile)
 	if err != nil {
 		log.Println("Can't create local file", err)
 		return
@@ -52,10 +53,10 @@ func WriteAlbums(albums []Album) {
 	fmt.Println("write completed")
 }
 
-func ReadAlbums() ([]Album, error) {
-	fr, err := local.NewLocalFileReader(AlbumsDatabaseFile)
+func Read() ([]Album, error) {
+	fr, err := local.NewLocalFileReader(configs.AlbumsDatabaseFile)
 	if err != nil {
-		return nil, fmt.Errorf("cannot open database file: %s", AlbumsDatabaseFile)
+		return nil, fmt.Errorf("cannot open database file: %s", configs.AlbumsDatabaseFile)
 	}
 	defer fr.Close()
 

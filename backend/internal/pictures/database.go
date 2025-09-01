@@ -1,8 +1,9 @@
-package main
+package pictures
 
 import (
 	"errors"
 	"fmt"
+	"github.com/evanespen/vanespen.art_2025/configs"
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/parquet"
 	"github.com/xitongsys/parquet-go/reader"
@@ -11,21 +12,21 @@ import (
 	"os"
 )
 
-func AppendPicture(picture Picture) {
-	if _, err := os.Stat(PicturesDatabaseFile); err == nil {
-		pictures, err := ReadPictures()
+func Append(picture Picture) {
+	if _, err := os.Stat(configs.PicturesDatabaseFile); err == nil {
+		pictures, err := Read()
 		if err != nil {
 			log.Println(err, err)
 		}
 		pictures = append(pictures, picture)
-		WritePictures(pictures)
+		Write(pictures)
 	} else {
-		WritePictures([]Picture{picture})
+		Write([]Picture{picture})
 	}
 }
 
-func WritePictures(pictures []Picture) {
-	fw, err := local.NewLocalFileWriter(PicturesDatabaseFile)
+func Write(pictures []Picture) {
+	fw, err := local.NewLocalFileWriter(configs.PicturesDatabaseFile)
 	if err != nil {
 		log.Println("Can't create local file", err)
 		return
@@ -52,10 +53,10 @@ func WritePictures(pictures []Picture) {
 	fmt.Println("write completed")
 }
 
-func ReadPictures() ([]Picture, error) {
-	fr, err := local.NewLocalFileReader(PicturesDatabaseFile)
+func Read() ([]Picture, error) {
+	fr, err := local.NewLocalFileReader(configs.PicturesDatabaseFile)
 	if err != nil {
-		return nil, fmt.Errorf("cannot open database file: %s", PicturesDatabaseFile)
+		return nil, fmt.Errorf("cannot open database file: %s", configs.PicturesDatabaseFile)
 	}
 	defer fr.Close()
 

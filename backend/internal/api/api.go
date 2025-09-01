@@ -1,7 +1,8 @@
-package main
+package api
 
 import (
 	"fmt"
+	"github.com/evanespen/vanespen.art_2025/configs"
 	"github.com/evanespen/vanespen.art_2025/internal/albums"
 	"github.com/evanespen/vanespen.art_2025/internal/pictures"
 	"github.com/gin-gonic/gin"
@@ -15,13 +16,13 @@ func UploadPictures(c *gin.Context) {
 	files := form.File["files"]
 
 	for _, file := range files {
-		stashImagePath := path.Join(StashDir, file.Filename)
+		stashImagePath := path.Join(configs.StashDir, file.Filename)
 		err := c.SaveUploadedFile(file, stashImagePath)
 		if err != nil {
 			c.Status(500)
 		}
 
-		handleErr := pictures.Handle(path.Join(StashDir, file.Filename))
+		handleErr := pictures.Handle(path.Join(configs.StashDir, file.Filename))
 
 		if handleErr == nil {
 			_ = os.Remove(stashImagePath)
@@ -35,7 +36,7 @@ func UploadPictures(c *gin.Context) {
 }
 
 func GetAllPictures(c *gin.Context) {
-	pictures, err := pictures.ReadPictures()
+	pictures, err := pictures.Read()
 	if err != nil {
 		fmt.Println(err)
 		c.Status(500)
@@ -47,7 +48,7 @@ func GetAllPictures(c *gin.Context) {
 func GetOnePicture(c *gin.Context) {
 	uuid := c.Param("uuid")
 
-	pictures, err := pictures.ReadPictures()
+	pictures, err := pictures.Read()
 	if err != nil {
 		c.Status(500)
 		return
@@ -68,19 +69,19 @@ func GetOnePicture(c *gin.Context) {
 // TODO: PUT (favourite)
 
 func PostAlbum(c *gin.Context) {
-	newAlbum := NewAlbum()
+	newAlbum := albums.NewAlbum()
 	if err := c.BindJSON(newAlbum); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	albums.AppendAlbum(*newAlbum)
+	albums.Append(*newAlbum)
 
 	c.Status(201)
 }
 
 func GetAllAlbums(c *gin.Context) {
-	albums, err := albums.ReadAlbums()
+	albums, err := albums.Read()
 	if err != nil {
 		fmt.Println(err)
 		c.Status(500)
@@ -92,7 +93,7 @@ func GetAllAlbums(c *gin.Context) {
 func GetOneAlbum(c *gin.Context) {
 	uuid := c.Param("uuid")
 
-	albums, err := albums.ReadAlbums()
+	albums, err := albums.Read()
 	if err != nil {
 		c.Status(500)
 		return

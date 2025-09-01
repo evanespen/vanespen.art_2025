@@ -1,9 +1,10 @@
-package main
+package pictures
 
 import (
 	"errors"
 	"fmt"
 	"github.com/disintegration/imaging"
+	"github.com/evanespen/vanespen.art_2025/configs"
 	"github.com/google/uuid"
 	"path"
 )
@@ -18,16 +19,16 @@ func PersistImage(imagePath string, pictureUUID string) error {
 		return errors.New("unable to open source image")
 	}
 
-	if imaging.Save(img, path.Join(FullResDir, filename)) != nil {
+	if imaging.Save(img, path.Join(configs.FullResDir, filename)) != nil {
 		return errors.New("unable to save full res image")
 	}
 
 	dstImageHalf := imaging.Resize(img, img.Bounds().Dx()/2, img.Bounds().Dy()/2, imaging.Lanczos)
-	if imaging.Save(dstImageHalf, path.Join(HalfResDir, filename)) != nil {
+	if imaging.Save(dstImageHalf, path.Join(configs.HalfResDir, filename)) != nil {
 		return errors.New("unable to save half res image")
 	}
 	dstImageThumb := imaging.Resize(img, img.Bounds().Dx()/6, img.Bounds().Dy()/6, imaging.Lanczos)
-	if imaging.Save(dstImageThumb, path.Join(ThumbResDir, filename)) != nil {
+	if imaging.Save(dstImageThumb, path.Join(configs.ThumbResDir, filename)) != nil {
 		return errors.New("unable to save thumb res image")
 	}
 
@@ -49,7 +50,7 @@ func Handle(imagePath string) error {
 		return err
 	}
 
-	pictures, err := ReadPictures()
+	pictures, err := Read()
 	if err == nil && len(pictures) > 0 {
 		for _, existingPicture := range pictures {
 			if existingPicture.Checksum == picture.Checksum {
@@ -58,7 +59,7 @@ func Handle(imagePath string) error {
 		}
 	}
 
-	AppendPicture(picture)
+	Append(picture)
 
 	return nil
 }

@@ -1,17 +1,20 @@
 package main
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/evanespen/vanespen.art_2025/internal/api"
+	"github.com/gin-gonic/gin"
+)
 
 func main() {
 	router := gin.Default()
 
-	router.GET("/pictures", GetAllPictures)
-	router.GET("/pictures/:uuid", GetOnePicture)
-	router.POST("/admin/upload", UploadPictures)
+	router.GET("/pictures", api.GetAllPictures)
+	router.GET("/pictures/:uuid", api.GetOnePicture)
+	router.POST("/admin/upload", api.UploadPictures)
 
-	router.GET("/admin/albums", GetAllAlbums)
-	router.GET("/admin/albums/:uuid", GetOneAlbum)
-	router.POST("/admin/albums", PostAlbum)
+	router.GET("/albums", api.GetAllAlbums)
+	router.GET("/albums/:uuid", api.GetOneAlbum)
+	router.POST("/admin/albums", api.PostAlbum)
 
 	router.Run(":8080")
 }
