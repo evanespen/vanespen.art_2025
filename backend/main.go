@@ -4,9 +4,11 @@ import (
 	"github.com/evanespen/vanespen.art_2025/configs"
 	"github.com/evanespen/vanespen.art_2025/internal/albums"
 	"github.com/evanespen/vanespen.art_2025/internal/api"
+	"github.com/evanespen/vanespen.art_2025/internal/cdn"
 	"github.com/evanespen/vanespen.art_2025/internal/pictures"
 	"github.com/evanespen/vanespen.art_2025/internal/security"
 	"github.com/gin-gonic/gin"
+	"log"
 )
 
 func main() {
@@ -24,8 +26,13 @@ func main() {
 
 	pictures.BindRoutes(router, adminRouter)
 	albums.BindRoutes(router, adminRouter)
+	cdn.BindRoutes(router, adminRouter)
 	security.BindRoutes(router, adminRouter)
 
-	router.Run(configs.APIHost)
+	err := router.Run(configs.APIHost)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
 
 }

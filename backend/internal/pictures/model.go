@@ -6,11 +6,13 @@ import (
 	"github.com/barasher/go-exiftool"
 	"github.com/evanespen/vanespen.art_2025/internal/utils"
 	"math"
+	"path"
 	"time"
 )
 
 type Picture struct {
 	UUID           string `json:"uuid" parquet:"name=uuid, type=FIXED_LEN_BYTE_ARRAY, length=37, convertedtype=UTF8, encoding=DELTA_BYTE_ARRAY"`
+	Ext            string `json:"ext" parquet:"name=ext, type=BYTE_ARRAY, convertedtype=UTF8, encoding=DELTA_BYTE_ARRAY"`
 	Checksum       string `json:"checksum" parquet:"name=checksum, type=FIXED_LEN_BYTE_ARRAY, length=65, encoding=DELTA_BYTE_ARRAY"`
 	Timestamp      int    `json:"timestamp" parquet:"name=timestamp, type=INT64, encoding=DELTA_BINARY_PACKED"`
 	Camera         string `json:"camera" parquet:"name=camera, type=BYTE_ARRAY, encoding=DELTA_LENGTH_BYTE_ARRAY"`
@@ -38,6 +40,7 @@ func NewPicture(imagePath string, pictureUUID string) (Picture, error) {
 	defer et.Close()
 
 	fileInfos := et.ExtractMetadata(imagePath)
+	extension := path.Ext(imagePath)
 
 	datetime, err := time.Parse("2006:01:02 15:04:05", fileInfos[0].Fields["DateTimeOriginal"].(string))
 	if err != nil {
@@ -60,6 +63,7 @@ func NewPicture(imagePath string, pictureUUID string) (Picture, error) {
 
 	return Picture{
 		UUID:           pictureUUID,
+		Ext:            extension,
 		Checksum:       checksum,
 		Camera:         fileInfos[0].Fields["Model"].(string),
 		Timestamp:      int(timestamp),
