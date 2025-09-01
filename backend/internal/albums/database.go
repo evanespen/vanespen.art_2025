@@ -50,7 +50,7 @@ func Write(albums []Album) {
 		log.Fatalf("error while closing parquet file: %v", err)
 	}
 
-	fmt.Println("write completed")
+	fmt.Printf("write completed to %s\n", configs.AlbumsDatabaseFile)
 }
 
 func Read() ([]Album, error) {
@@ -97,4 +97,19 @@ func Read() ([]Album, error) {
 	}
 
 	return albums, nil
+}
+
+func GetOne(uuid string) (Album, error) {
+	albums, err := Read()
+	if err != nil {
+		return Album{}, err
+	}
+
+	for _, album := range albums {
+		if album.UUID == uuid {
+			return album, nil
+		}
+	}
+
+	return Album{}, fmt.Errorf("album not found: %s", uuid)
 }

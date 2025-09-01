@@ -31,21 +31,55 @@ func GetAllAlbums(c *gin.Context) {
 func GetOneAlbum(c *gin.Context) {
 	uuid := c.Param("uuid")
 
-	allAlbums, err := Read()
+	album, err := GetOne(uuid)
 	if err != nil {
-		c.Status(500)
+		c.JSON(http.StatusNotFound, err)
 		return
 	}
 
-	for _, album := range allAlbums {
-		if album.UUID == uuid {
-			c.IndentedJSON(http.StatusOK, album)
-			return
+	c.IndentedJSON(http.StatusOK, album)
+}
+
+type UpdateAlbumPayload struct {
+	Pictures []string `json:"pictures"`
+}
+
+func UpdateAlbumPictures(c *gin.Context) {
+	var payload UpdateAlbumPayload
+	if err := c.BindJSON(&payload); err != nil {
+		return
+	}
+
+	albums, err := Read()
+	if err != nil {
+		fmt.Println(err)
+		c.JSON(http.StatusInternalServerError, err)
+	}
+
+	fmt.Println(payload)
+
+	var selectedAlbum Album
+	var selectedAlbumIndex int
+
+	for index, album := range albums {
+		if album.UUID == c.Param("uuid") {
+			selectedAlbum = album
+			selectedAlbumIndex = index
+			break
 		}
 	}
 
-	c.Status(404)
-	return
+	if selectedAlbum.Title != "" {
+		fmt.Println("album found")
+		selectedAlbum.Pictures = payload.Pictures
+		albums[selectedAlbumIndex] = selectedAlbum
+
+		Write(albums)
+		c.Status(200)
+		return
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{"error": "album not found"})
 }
 
 func BindRoutes(engine *gin.Engine, adminGroup *gin.RouterGroup) {
@@ -53,4 +87,5 @@ func BindRoutes(engine *gin.Engine, adminGroup *gin.RouterGroup) {
 	albumsRouter.GET("/", GetAllAlbums)
 	albumsRouter.GET("/:uuid", GetOneAlbum)
 	adminGroup.POST("/albums", PostAlbum)
+	adminGroup.PATCH("/albums/:uuid", UpdateAlbumPictures)
 }
