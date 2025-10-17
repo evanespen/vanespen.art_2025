@@ -1,0 +1,54 @@
+@font-face {
+  font-family: 'Brogte';
+  src: url('/fonts/Brogte.otf');
+}
+
+@font-face {
+  font-family: 'hilden';
+  src: url('/fonts/hilden.otf');
+}
+
+@font-face {
+  font-family: 'sterla';
+  src: url('/fonts/STERLA.otf');
+}
+
+@mixin f-h {
+  //font-family: brioso-pro,serif;
+  //font-weight: 400;
+  //font-style: normal;
+  font-family: sterla, serif;
+  font-weight: 400;
+}
+
+@mixin f-h-b {
+  //font-family: brioso-pro,serif;
+  //font-weight: 700;
+  //font-style: normal;
+  font-family: sterla, serif;
+  font-weight: 800;
+}
+
+@mixin f-p {
+  //font-family: quiverleaf-cf, sans-serif;
+  //font-weight: 600;
+  //font-style: normal;
+  font-family: Brogte, serif;
+}
+
+@mixin f-p-b {
+  //font-family: quiverleaf-cf,sans-serif;
+  //font-weight: 800;
+  //font-style: normal;
+  font-family: Brogte, serif;
+}
+
+@mixin f-p-2 {
+  font-family: quiverleaf-cf, sans-serif;
+  font-weight: 800;
+  font-style: normal;
+}
+
+.f-p-b {
+  @include f-p-b;
+}

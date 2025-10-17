@@ -1,0 +1,39 @@
+@import "fonts.scss";
+@import "color.scss";
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background-color: $background;
+  color: $text;
+}
+
+@mixin hspace-x {
+  @for $i from 1 through 1000 {
+    .hspace-#{$i} {
+      height: #{$i}px;
+    }
+  }
+}
+
+@include hspace-x;
+
+
+.btn-icon {
+  background: none;
+  border: none;
+  padding: 10px;
+
+  &:hover {
+    cursor: pointer;
+  }
+}
+
+.btn-warning {
+  background-color: #FFC107;
+}
+
+.btn-error {
+  background-color: #F44336;
+}
+
