@@ -7,12 +7,14 @@ import (
 	"github.com/evanespen/vanespen.art_2025/internal/cdn"
 	"github.com/evanespen/vanespen.art_2025/internal/pictures"
 	"github.com/evanespen/vanespen.art_2025/internal/security"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"log"
 )
 
 func main() {
 	router := api.GetRouter()
+	router.Use(cors.Default()) // All origins allowed by default
 
 	router.Use(gin.Recovery())
 

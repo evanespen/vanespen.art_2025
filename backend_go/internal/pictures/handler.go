@@ -31,6 +31,10 @@ func PersistImage(imagePath string, pictureUUID string) error {
 	if imaging.Save(dstImageThumb, path.Join(configs.ThumbResDir, filename)) != nil {
 		return errors.New("unable to save thumb res image")
 	}
+	dstImageTiny := imaging.Resize(img, img.Bounds().Dx()/100, img.Bounds().Dy()/100, imaging.Lanczos)
+	if imaging.Save(dstImageTiny, path.Join(configs.TinyResDir, filename)) != nil {
+		return errors.New("unable to save tiny res image")
+	}
 
 	return nil
 }

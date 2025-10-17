@@ -24,6 +24,7 @@ type Picture struct {
 	Lens           string `json:"lens" parquet:"name=lens, type=BYTE_ARRAY, encoding=DELTA_LENGTH_BYTE_ARRAY"`
 	Flash          bool   `json:"flash" parquet:"name=flash, type=BOOLEAN, encoding=PLAIN"`
 	Landscape      bool   `json:"landscape" parquet:"name=landscape, type=BOOLEAN, encoding=PLAIN"`
+	Panoramic      bool   `json:"panoramic" parquet:"name=panoramic, type=BOOLEAN, encoding=PLAIN"`
 	Width          int16  `json:"width" parquet:"name=width, type=INT32, encoding=DELTA_BINARY_PACKED"`
 	Height         int16  `json:"height" parquet:"name=height, type=INT32, encoding=DELTA_BINARY_PACKED"`
 	Favourite      bool   `json:"favourite" parquet:"name=favourite, type=BOOLEAN, encoding=PLAIN"`
@@ -61,6 +62,17 @@ func NewPicture(imagePath string, pictureUUID string) (Picture, error) {
 	//	}
 	//}
 
+	width := int16(fileInfos[0].Fields["ImageWidth"].(float64))
+	height := int16(fileInfos[0].Fields["ImageHeight"].(float64))
+	landscape := width > height
+
+	var panoramic bool
+	if landscape && float32(width)/float32(height) > 1.5 {
+		panoramic = true
+	} else {
+		panoramic = false
+	}
+
 	return Picture{
 		UUID:           pictureUUID,
 		Ext:            extension,
@@ -74,9 +86,10 @@ func NewPicture(imagePath string, pictureUUID string) (Picture, error) {
 		FocalLength:    fileInfos[0].Fields["FocalLength"].(string),
 		Lens:           fileInfos[0].Fields["LensID"].(string),
 		Flash:          fileInfos[0].Fields["Flash"].(string) == "Off, Did not fire.",
-		Landscape:      fileInfos[0].Fields["ImageWidth"].(float64) > fileInfos[0].Fields["ImageHeight"].(float64),
-		Width:          int16(fileInfos[0].Fields["ImageWidth"].(float64)),
-		Height:         int16(fileInfos[0].Fields["ImageHeight"].(float64)),
+		Landscape:      landscape,
+		Panoramic:      panoramic,
+		Width:          width,
+		Height:         height,
 		Favourite:      false,
 		TriggerWarning: false,
 		Description:    "",

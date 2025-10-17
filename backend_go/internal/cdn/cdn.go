@@ -16,6 +16,7 @@ const (
 	Full  ImageSize = "full"
 	Half  ImageSize = "half"
 	Thumb ImageSize = "thumb"
+	Tiny  ImageSize = "tiny"
 )
 
 func GetImagePath(uuid string, ext string, imageSize ImageSize) (string, error) {
@@ -28,6 +29,8 @@ func GetImagePath(uuid string, ext string, imageSize ImageSize) (string, error) 
 		imagePath = path.Join(configs.HalfResDir, uuid+ext)
 	case Thumb:
 		imagePath = path.Join(configs.ThumbResDir, uuid+ext)
+	case Tiny:
+		imagePath = path.Join(configs.TinyResDir, uuid+ext)
 	}
 
 	if _, err := os.Stat(imagePath); err != nil {
@@ -50,6 +53,8 @@ func HandleGetImage(c *gin.Context) {
 		size = Half
 	case "full":
 		size = Full
+	case "tiny":
+		size = Tiny
 	default:
 		size = Thumb
 	}
