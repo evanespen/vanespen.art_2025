@@ -21,7 +21,7 @@ async fn main() -> Result<(), async_nats::Error> {
 
 	let toto: NatsMessage = rmp_serde::from_slice(&message.payload).unwrap();
 	println!("{:?}", toto);
-
+	
         println!("Received message {:?}", message.payload);
     }
 
