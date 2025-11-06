@@ -1,7 +1,9 @@
 use bytes::Bytes;
 use futures_util::StreamExt;
+use serde::{Serialize, Deserialize};
+use rmp_serde;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 struct NatsMessage {
     key: String,
 }
@@ -21,7 +23,7 @@ async fn main() -> Result<(), async_nats::Error> {
 
 	let toto: NatsMessage = rmp_serde::from_slice(&message.payload).unwrap();
 	println!("{:?}", toto);
-	
+
         println!("Received message {:?}", message.payload);
     }
 
