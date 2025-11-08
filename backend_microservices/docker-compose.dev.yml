@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000" # API
+      - "9001:9001" # Console
+    volumes:
+      - ./data:/data
+
+  nats:
+    image: nats:latest
+    container_name: nats
+    command: "-js -sd /data --http_port 8222"
+    ports:
+      - "4222:4222" # Client port
+      - "8222:8222" # HTTP port for monitoring
+
+  nats-dashboard:
+    image: mdawar/nats-dashboard:latest
+    container_name: nats-dashboard
+    environment:
+      NATS_SERVER_URL: "http://nats:8222"
+    ports:
+      - "8080:8080" # Dashboard
+    depends_on:
+      - nats

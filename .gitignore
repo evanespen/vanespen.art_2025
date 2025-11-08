@@ -3,3 +3,4 @@ test_images
 *.parquet
 STORAGE
 DATABASES
+.aider*
