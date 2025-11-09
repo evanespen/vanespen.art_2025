@@ -7,11 +7,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -30,38 +32,92 @@ type Picture struct {
 	BytesCount int64
 }
 
-// notify sends a message to a NATS server with the details of the uploaded picture.
-// It uses the msgpack library to serialize the Picture struct and publishes it to the "picture.uploaded" subject.
-func notify(picture Picture) {
+type ServiceResponse struct {
+	Success bool
+	Msg     string
+}
+
+func requestExtract(picture Picture) error {
 	nc, err := nats.Connect("nats://localhost:4222")
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return err
 	}
 	defer nc.Close()
 
 	// serialize the Picture struct using msgpack
 	message, err := msgpack.Marshal(&picture)
 	if err != nil {
-		log.Fatal("Failed to marshal picture:", err)
+		log.Println("Failed to marshal picture:", err)
+		return err
 	}
 
-	// notify the NATS server about the uploaded picture
-	err = nc.Publish("picture.uploaded", message)
+	msg, err := nc.Request("picture.extract", message, 10*time.Second)
 	if err != nil {
-		log.Fatal("Failed to publish picture:", err)
+		log.Println("Failed to request extract:", err)
+		return err
 	}
+
+	var response ServiceResponse
+	err = msgpack.Unmarshal(msg.Data, &response)
+	if err != nil {
+		log.Println("Failed to unmarshal response:", err)
+		return err
+	}
+
+	log.Println(response)
+
+	return nil
 }
 
-// uploadFile handles the actual file upload process to MinIO storage
+// requestResize sends a message to a NATS server with the details of the uploaded picture.
+// It uses the msgpack library to serialize the Picture struct and publishes it to the "picture.uploaded" subject.
+func requestResize(picture Picture) error {
+	nc, err := nats.Connect("nats://localhost:4222")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	defer nc.Close()
+
+	// serialize the Picture struct using msgpack
+	message, err := msgpack.Marshal(&picture)
+	if err != nil {
+		log.Println("Failed to marshal picture:", err)
+		return err
+	}
+
+	msg, err := nc.Request("picture.resize", message, 10*time.Second)
+	if err != nil {
+		log.Println("Failed to request picture:", err)
+		return err
+	}
+
+	var response ServiceResponse
+	err = msgpack.Unmarshal(msg.Data, &response)
+	if err != nil {
+		log.Println("Failed to unmarshal response:", err)
+		return err
+	}
+
+	if !response.Success {
+		log.Println("Failed to notify picture:", response.Msg)
+		return errors.New(response.Msg)
+	}
+
+	return nil
+}
+
+// saveFile handles the actual file upload process to MinIO storage
 // It takes a multipart.FileHeader as input and uploads the file to the specified bucket
-func uploadFile(file *multipart.FileHeader) {
+func saveFile(file *multipart.FileHeader) (Picture, error) {
 	minioClient, err := minio.New("localhost:9000", &minio.Options{
 		Creds:  credentials.NewStaticV4("minioadmin", "minioadmin", ""),
 		Secure: false,
 	})
 	if err != nil {
 		fmt.Println("Error creating Minio client:", err)
-		return
+		return Picture{}, err
 	}
 
 	// Extract file extension from the filename
@@ -77,7 +133,7 @@ func uploadFile(file *multipart.FileHeader) {
 	openedFile, err := file.Open()
 	if err != nil {
 		fmt.Println("Error opening the file:", err)
-		return
+		return Picture{}, err
 	}
 	defer openedFile.Close()
 
@@ -85,13 +141,13 @@ func uploadFile(file *multipart.FileHeader) {
 	exists, err := minioClient.BucketExists(context.Background(), bucketName)
 	if err != nil {
 		fmt.Println("Error checking bucket existence:", err)
-		return
+		return Picture{}, err
 	}
 	if !exists {
 		err = minioClient.MakeBucket(context.Background(), bucketName, minio.MakeBucketOptions{})
 		if err != nil {
 			fmt.Println("Error creating bucket:", err)
-			return
+			return Picture{}, err
 		}
 	}
 
@@ -104,7 +160,7 @@ func uploadFile(file *multipart.FileHeader) {
 		minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	if err != nil {
 		fmt.Println("Error uploading file:", err)
-		return
+		return Picture{}, err
 	}
 
 	picture := Picture{
@@ -113,9 +169,9 @@ func uploadFile(file *multipart.FileHeader) {
 		BytesCount: file.Size,
 	}
 
-	notify(picture)
-
 	log.Printf("File uploaded successfully with name: %s", objectName)
+
+	return picture, nil
 }
 
 // uploadHandler handles the HTTP POST request for file uploads
@@ -129,7 +185,29 @@ func uploadHandler(c *gin.Context) {
 		return
 	}
 
-	uploadFile(file)
+	picture, uploadError := saveFile(file)
+	if uploadError != nil {
+		fmt.Println("Error uploading file:", uploadError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading file"})
+		return
+	}
+	// c.SSEvent("status", "saving OK: "+picture.Key.String())
+
+	resizeError := requestResize(picture)
+	if resizeError != nil {
+		fmt.Println("Error resizing:", resizeError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error resizing file"})
+		return
+	}
+	// c.SSEvent("status", "resizing OK: "+picture.Key.String())
+
+	extractError := requestExtract(picture)
+	if extractError != nil {
+		fmt.Println("Error extracting:", extractError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error extracting metadatas"})
+		return
+	}
+	// c.SSEvent("status", "extracting OK: "+picture.Key.String())
 
 	c.JSON(http.StatusOK, gin.H{"message": "File handled", "filename": file.Filename})
 }

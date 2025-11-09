@@ -31,6 +31,11 @@ type Picture struct {
 	BytesCount int64
 }
 
+type ServiceResponse struct {
+	Success bool
+	Msg     string
+}
+
 func getMinioClient() *minio.Client {
 	minioClient, err := minio.New("localhost:9000", &minio.Options{
 		Creds:  credentials.NewStaticV4("minioadmin", "minioadmin", ""),
@@ -136,46 +141,47 @@ func saveImage(picture Picture, imageBytes []byte, kind string) error {
 	return nil
 }
 
-func messageHandler(msg *nats.Msg) {
+func messageHandler(msg *nats.Msg) error {
 	picture := Picture{}
 
 	err := msgpack.Unmarshal(msg.Data, &picture)
 	if err != nil {
 		log.Println("Failed to unmarshal message: ", err)
-		return
+		return err
 	}
 
 	img, err := getImage(picture)
 	if err != nil {
 		log.Println("Failed to get image:", err)
-		return
+		return err
 	}
 
 	halfImage, err := resizeImage(picture, img, 0.5)
 	if err != nil {
 		log.Println("Failed to create half image:", err)
-		return
+		return err
 	}
 
 	err = saveImage(picture, halfImage, "half")
 	if err != nil {
-		log.Fatal("Failed to save half image:", err)
-		return
+		log.Println("Failed to save half image:", err)
+		return err
 	}
 
 	thumbImage, err := resizeImage(picture, img, 0.1)
 	if err != nil {
 		log.Println("Failed to create half image:", err)
-		return
+		return err
 	}
 
 	err = saveImage(picture, thumbImage, "thumb")
 	if err != nil {
-		log.Fatal("Failed to save thumb image:", err)
-		return
+		log.Println("Failed to save thumb image:", err)
+		return err
 	}
 
 	log.Println("Image processing completed")
+	return nil
 	// Notify
 }
 
@@ -189,8 +195,33 @@ func main() {
 	log.Println("Connected to NATS server")
 
 	defer nc.Close()
-	// subscribe
-	sub, err := nc.Subscribe("picture.uploaded", messageHandler)
+
+	sub, err := nc.Subscribe("picture.resize", func(m *nats.Msg) {
+		resizeError := messageHandler(m)
+		var response ServiceResponse
+
+		if resizeError != nil {
+			log.Println("Failed to resize image:", resizeError)
+			response = ServiceResponse{
+				Success: false,
+				Msg:     resizeError.Error(),
+			}
+		} else {
+			response = ServiceResponse{
+				Success: true,
+				Msg:     "Image resized successfully",
+			}
+		}
+
+		responsesBytes, err := msgpack.Marshal(response)
+		if err != nil {
+			log.Fatal("Failed to marshal response:", err)
+		}
+
+		if err := m.Respond(responsesBytes); err != nil {
+			log.Fatal("Failed to respond:", err)
+		}
+	})
 	if err != nil {
 		log.Fatal("Failed to subscribe: ", err)
 	}
