@@ -1,3 +1,9 @@
+// Package main provides image resizing functionality.
+
+// This package handles the resizing of images to different sizes.
+// It listens for messages on the NATS "picture.resize" topic,
+// processes the images, creates resized versions (half and thumb),
+// and stores them in MinIO buckets.
 package main
 
 import (
@@ -9,77 +15,25 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	_ "image/png"
-	"io"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/nats-io/nats.go"
 	"github.com/vmihailenco/msgpack"
 
 	"github.com/disintegration/imaging"
+	"vanespen.art-microservices/common/models"
+	"vanespen.art-microservices/common/utils"
 )
 
-// Picture represents a picture stored in MinIO with its metadata
-type Picture struct {
-	Key        uuid.UUID
-	Ext        string
-	BytesCount int64
-}
-
-type ServiceResponse struct {
-	Success bool
-	Msg     string
-}
-
-func getMinioClient() *minio.Client {
-	minioClient, err := minio.New("localhost:9000", &minio.Options{
-		Creds:  credentials.NewStaticV4("minioadmin", "minioadmin", ""),
-		Secure: false,
-	})
-	if err != nil {
-		log.Fatal("Error creating Minio client:", err)
-		return nil
-	}
-	return minioClient
-}
-
-func getImage(picture Picture) (image.Image, error) {
-	log.Println("Got message:", picture)
-	log.Println("Retrieving image:", picture.Key)
-
-	minioClient := getMinioClient()
-
-	bucketName := "full"
-	objectName := fmt.Sprintf("%s.%s", picture.Key, picture.Ext)
-	ob, err := minioClient.GetObject(context.Background(), bucketName, objectName, minio.GetObjectOptions{})
-	if err != nil {
-		fmt.Println("Error getting object:", err)
-		return nil, err
-	}
-	defer ob.Close()
-
-	imageBytes, err := io.ReadAll(ob)
-	if err != nil {
-		fmt.Println("Error reading object:", err)
-		return nil, err
-	}
-
-	// load the bytes to an image
-	img, _, err := image.Decode(bytes.NewReader(imageBytes))
-	if err != nil {
-		log.Fatal("Error decoding image:", err)
-		return nil, err
-	}
-
-	return img, nil
-}
-
-func resizeImage(picture Picture, img image.Image, factor float64) ([]byte, error) {
+// resizeImage resizes an image by a specified factor.
+//
+// This function takes an image and resizes it to the specified factor
+// of its original dimensions. It supports both JPEG and PNG formats.
+func resizeImage(picture models.Picture, img image.Image, factor float64) ([]byte, error) {
 	// Implement image resizing logic here
 	log.Println("Resizing image:", picture.Key)
 
@@ -99,33 +53,37 @@ func resizeImage(picture Picture, img image.Image, factor float64) ([]byte, erro
 	return buf.Bytes(), nil
 }
 
-func saveImage(picture Picture, imageBytes []byte, kind string) error {
+// saveImage saves a resized image to MinIO storage.
+//
+// This function saves the resized image to the appropriate MinIO bucket
+// (either "half" or "thumb" based on the kind parameter).
+func saveImage(picture models.Picture, imageBytes []byte, kind string) error {
 	// Implement image saving logic here
 	log.Println("Saving resized image:", picture.Key)
 
 	var bucketName string
 	if kind != "half" && kind != "thumb" {
-		return fmt.Errorf("Unknown kind:", kind)
+		return fmt.Errorf("Unknown kind: %s", kind)
 	} else {
 		bucketName = kind
 	}
 
-	minioClient := getMinioClient()
+	minioClient := utils.NewMinioClient()
 
 	// Check if the bucket exists, if not, create it
 	exists, err := minioClient.BucketExists(context.Background(), bucketName)
 	if err != nil {
-		return fmt.Errorf("Error checking bucket existence:", err)
+		return fmt.Errorf("Error checking bucket existence: %s", err)
 
 	}
 	if !exists {
 		err = minioClient.MakeBucket(context.Background(), bucketName, minio.MakeBucketOptions{})
 		if err != nil {
-			return fmt.Errorf("Error creating bucket:", err)
+			return fmt.Errorf("Error creating bucket: %s", err)
 		}
 	}
 
-	objectName := fmt.Sprintf("%s.%s", picture.Key, picture.Ext)
+	objectName := fmt.Sprintf("%d.%s", picture.Key, picture.Ext)
 
 	_, err = minioClient.PutObject(
 		context.Background(),
@@ -141,8 +99,13 @@ func saveImage(picture Picture, imageBytes []byte, kind string) error {
 	return nil
 }
 
+// messageHandler processes incoming resize requests from NATS.
+//
+// This function handles messages from the "picture.resize" topic,
+// retrieves the image from MinIO, resizes it to half and thumb sizes,
+// and saves the resized images back to MinIO.
 func messageHandler(msg *nats.Msg) error {
-	picture := Picture{}
+	picture := models.Picture{}
 
 	err := msgpack.Unmarshal(msg.Data, &picture)
 	if err != nil {
@@ -150,7 +113,7 @@ func messageHandler(msg *nats.Msg) error {
 		return err
 	}
 
-	img, err := getImage(picture)
+	img, err := utils.GetImage(picture)
 	if err != nil {
 		log.Println("Failed to get image:", err)
 		return err
@@ -185,31 +148,30 @@ func messageHandler(msg *nats.Msg) error {
 	// Notify
 }
 
+// main initializes the NATS client and sets up message handlers.
+//
+// This function connects to the NATS server, subscribes to the
+// "picture.resize" topic, and handles incoming messages to resize
+// images. It also handles graceful shutdown on SIGINT or SIGTERM signals.
 func main() {
 	// connect to the nats server
-	nc, err := nats.Connect("nats://localhost:4222")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println("Connected to NATS server")
-
+	nc := utils.NewNatsClient()
 	defer nc.Close()
 
 	sub, err := nc.Subscribe("picture.resize", func(m *nats.Msg) {
 		resizeError := messageHandler(m)
-		var response ServiceResponse
+		var response models.ServiceResponse
 
 		if resizeError != nil {
 			log.Println("Failed to resize image:", resizeError)
-			response = ServiceResponse{
-				Success: false,
-				Msg:     resizeError.Error(),
+			response = models.ServiceResponse{
+				Code: 500,
+				Msg:  resizeError.Error(),
 			}
 		} else {
-			response = ServiceResponse{
-				Success: true,
-				Msg:     "Image resized successfully",
+			response = models.ServiceResponse{
+				Code: 200,
+				Msg:  "Image resized successfully",
 			}
 		}
 

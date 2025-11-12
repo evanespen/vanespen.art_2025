@@ -17,7 +17,7 @@ services:
   nats:
     image: nats:latest
     container_name: nats
-    command: "-js -sd /data --http_port 8222"
+    command: "-sd /data --http_port 8222"
     ports:
       - "4222:4222" # Client port
       - "8222:8222" # HTTP port for monitoring
