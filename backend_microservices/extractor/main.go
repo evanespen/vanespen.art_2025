@@ -30,13 +30,11 @@ import (
 // 4. Returns the extracted metadata or an error if any step fails
 //
 // Parameters:
-//
-//	msg: The NATS message containing the image information
+//   - msg: The NATS message containing the image information
 //
 // Returns:
-//
-//	models.PictureMetadatas: The extracted metadata from the image
-//	error: An error if any step in the process fails
+//   - models.PictureMetadatas: The extracted metadata from the image
+//   - error: An error if any step in the process fails
 func handleExtract(msg *nats.Msg) (models.PictureMetadatas, error) {
 	picture := models.Picture{}
 
@@ -67,6 +65,12 @@ func handleExtract(msg *nats.Msg) (models.PictureMetadatas, error) {
 //
 // This function marshals the PictureMetadatas into msgpack format
 // and sends it to the "picture.store" topic on the NATS server.
+//
+// Parameters:
+//   - metadatas: The extracted metadata to be saved
+//
+// Returns:
+//   - error: An error if any step in the process fails
 func requestSave(metadatas models.PictureMetadatas) error {
 	nc := utils.NewNatsClient()
 	defer nc.Close()

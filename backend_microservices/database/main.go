@@ -4,7 +4,6 @@
 // connecting to the database, performing CRUD operations, and managing
 // data storage. It uses MinIO for object storage and parquet format
 // for efficient data serialization.
-
 package main
 
 import (
@@ -25,6 +24,13 @@ import (
 // This function handles messages from the "picture.store" topic,
 // unmarshals the PictureMetadatas from the message, and writes
 // them to the database.
+//
+// Parameters:
+//   - mc: The MinIO client instance
+//   - msg: The NATS message containing the picture metadata
+//
+// Returns:
+//   - error: An error if the processing or writing fails
 func handleStore(mc *minio.Client, msg *nats.Msg) error {
 	metadata := models.PictureMetadatas{}
 	if err := msgpack.Unmarshal(msg.Data, &metadata); err != nil {
@@ -64,6 +70,13 @@ func handleStore(mc *minio.Client, msg *nats.Msg) error {
 // This function handles messages from the "picture.get_all" topic,
 // retrieves all PictureMetadatas from the database, and responds
 // with the serialized data.
+//
+// Parameters:
+//   - mc: The MinIO client instance
+//   - msg: The NATS message triggering the retrieval
+//
+// Returns:
+//   - error: An error if the retrieval or response fails
 func handleGetAll(mc *minio.Client, msg *nats.Msg) error {
 	items, err := GetAll(mc)
 	if err != nil {

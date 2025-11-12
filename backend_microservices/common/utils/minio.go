@@ -22,6 +22,9 @@ import (
 //
 // This function initializes and returns a MinIO client configured
 // to connect to the local MinIO server with default credentials.
+//
+// Returns:
+// - *minio.Client: The initialized MinIO client.
 func NewMinioClient() *minio.Client {
 	minioClient, err := minio.New("localhost:9000", &minio.Options{
 		Creds:  credentials.NewStaticV4("minioadmin", "minioadmin", ""),
@@ -38,6 +41,13 @@ func NewMinioClient() *minio.Client {
 //
 // This function fetches the image data for a given Picture from
 // the specified MinIO bucket and returns it as a byte slice.
+//
+// Parameters:
+// - picture: The Picture object for which to retrieve the image data.
+//
+// Returns:
+// - []byte: The byte data of the image.
+// - error: An error if the retrieval fails.
 func GetImageBytes(picture models.Picture) ([]byte, error) {
 	log.Println("Retrieving image:", picture.Key)
 
@@ -65,6 +75,13 @@ func GetImageBytes(picture models.Picture) ([]byte, error) {
 //
 // This function fetches the image data and decodes it into an
 // image.Image object that can be used for further processing.
+//
+// Parameters:
+// - picture: The picture object containing the key and extension.
+//
+// Returns:
+// - image.Image: The decoded image.
+// - error: An error if the retrieval or decoding fails.
 func GetImage(picture models.Picture) (image.Image, error) {
 	imageBytes, err := GetImageBytes(picture)
 	if err != nil {
@@ -81,6 +98,18 @@ func GetImage(picture models.Picture) (image.Image, error) {
 	return img, nil
 }
 
+// ObjectExists checks if an object exists in a MinIO bucket.
+//
+// This function verifies the existence of an object in the specified bucket.
+// It returns true if the object exists, false otherwise.
+//
+// Parameters:
+// - mc: The MinIO client.
+// - bucketName: The name of the bucket.
+// - objectName: The name of the object.
+//
+// Returns:
+// - bool: True if the object exists, false otherwise.
 func ObjectExists(mc *minio.Client, bucketName string, objectName string) bool {
 	_, err := mc.StatObject(context.Background(), bucketName, objectName, minio.StatObjectOptions{})
 	if err != nil {
@@ -89,10 +118,19 @@ func ObjectExists(mc *minio.Client, bucketName string, objectName string) bool {
 	return true
 }
 
-// getObject retrieves an object from MinIO storage.
+// GetObject retrieves an object from MinIO storage.
 //
 // This function checks if the specified bucket and object exist,
 // then returns the object for reading.
+//
+// Parameters:
+// - mc: The MinIO client.
+// - bucketName: The name of the bucket.
+// - objectName: The name of the object.
+//
+// Returns:
+// - *minio.Object: The object for reading.
+// - error: An error if the object does not exist or if there was an error retrieving it.
 func GetObject(mc *minio.Client, bucketName string, objectName string) (*minio.Object, error) {
 	// Check if the bucket exists
 	exists, err := mc.BucketExists(context.Background(), bucketName)
@@ -111,6 +149,19 @@ func GetObject(mc *minio.Client, bucketName string, objectName string) (*minio.O
 
 }
 
+// PutObject uploads an object to MinIO storage.
+//
+// This function creates a bucket if it doesn't exist and uploads
+// the specified data to the specified object in the bucket.
+//
+// Parameters:
+// - mc: The MinIO client.
+// - bucketName: The name of the bucket.
+// - objectName: The name of the object.
+// - data: The data to upload.
+//
+// Returns:
+// - error: An error if the object could not be uploaded.
 func PutObject(mc *minio.Client, bucketName string, objectName string, data []byte) error {
 	exists, errBucketExists := mc.BucketExists(context.Background(), bucketName)
 	if errBucketExists != nil {

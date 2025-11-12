@@ -15,6 +15,9 @@ import (
 //
 // This function initializes and returns a NATS client configured
 // to connect to the local NATS server at the default address.
+//
+// Returns:
+// - *nats.Conn: A pointer to the initialized NATS client.
 func NewNatsClient() *nats.Conn {
 	nc, err := nats.Connect("nats://localhost:4222")
 	if err != nil {

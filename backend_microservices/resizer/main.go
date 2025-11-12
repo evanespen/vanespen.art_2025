@@ -1,5 +1,5 @@
 // Package main provides image resizing functionality.
-
+//
 // This package handles the resizing of images to different sizes.
 // It listens for messages on the NATS "picture.resize" topic,
 // processes the images, creates resized versions (half and thumb),
@@ -33,6 +33,15 @@ import (
 //
 // This function takes an image and resizes it to the specified factor
 // of its original dimensions. It supports both JPEG and PNG formats.
+//
+// Parameters:
+// - picture: The picture model containing information about the image.
+// - img: The image to be resized.
+// - factor: The factor by which to resize the image.
+//
+// Returns:
+// - A byte slice containing the resized image data.
+// - An error if the resizing process fails.
 func resizeImage(picture models.Picture, img image.Image, factor float64) ([]byte, error) {
 	// Implement image resizing logic here
 	log.Println("Resizing image:", picture.Key)
@@ -57,6 +66,14 @@ func resizeImage(picture models.Picture, img image.Image, factor float64) ([]byt
 //
 // This function saves the resized image to the appropriate MinIO bucket
 // (either "half" or "thumb" based on the kind parameter).
+//
+// Parameters:
+// - picture: The picture object containing metadata about the image.
+// - imageBytes: The byte slice containing the resized image data.
+// - kind: The kind of resized image ("half" or "thumb").
+//
+// Returns:
+// - error: An error if the image could not be saved.
 func saveImage(picture models.Picture, imageBytes []byte, kind string) error {
 	// Implement image saving logic here
 	log.Println("Saving resized image:", picture.Key)
@@ -104,6 +121,12 @@ func saveImage(picture models.Picture, imageBytes []byte, kind string) error {
 // This function handles messages from the "picture.resize" topic,
 // retrieves the image from MinIO, resizes it to half and thumb sizes,
 // and saves the resized images back to MinIO.
+//
+// Parameters:
+// - msg: The NATS message containing the picture information.
+//
+// Returns:
+// - error: An error if any step fails.
 func messageHandler(msg *nats.Msg) error {
 	picture := models.Picture{}
 

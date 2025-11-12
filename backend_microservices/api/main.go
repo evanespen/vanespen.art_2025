@@ -23,12 +23,31 @@ import (
 	"vanespen.art-microservices/common/utils"
 )
 
+// imageAlreadyExists checks if an image with the given object name exists in all required buckets.
+//
+// This function verifies the existence of an image in the "full", "half", and "thumb" buckets.
+// It returns true if the image exists in all three buckets, false otherwise.
+//
+// Parameters:
+//   - mc: The MinIO client instance
+//   - objectName: The name of the object to check for existence
+//
+// Returns:
+//   - bool: true if the image exists in all required buckets, false otherwise
 func imageAlreadyExists(mc *minio.Client, objectName string) bool {
 	return utils.ObjectExists(mc, "full", objectName) &&
 		utils.ObjectExists(mc, "half", objectName) &&
 		utils.ObjectExists(mc, "thumb", objectName)
 }
 
+// requestGetAll sends a request to retrieve all picture metadata from the database service.
+//
+// This function uses NATS to request all picture metadata from the database service.
+// It unmarshals the response and returns the picture metadata or an error if the request fails.
+//
+// Returns:
+//   - []models.PictureMetadatas: A slice of PictureMetadatas containing all picture metadata
+//   - error: An error if the request or unmarshaling fails
 func requestGetAll() ([]models.PictureMetadatas, error) {
 	nc := utils.NewNatsClient()
 	response, err := nc.Request("picture.get_all", nil, 5*time.Second)
@@ -47,6 +66,16 @@ func requestGetAll() ([]models.PictureMetadatas, error) {
 	return items, nil
 }
 
+// requestExtract sends a request to extract metadata from an image.
+//
+// This function uses NATS to request metadata extraction for the specified picture.
+// It marshals the picture data, sends the request, and processes the response.
+//
+// Parameters:
+//   - picture: The Picture struct containing the image information
+//
+// Returns:
+//   - error: An error if the request, marshaling, or response processing fails
 func requestExtract(picture models.Picture) error {
 	nc := utils.NewNatsClient()
 
@@ -75,8 +104,16 @@ func requestExtract(picture models.Picture) error {
 	return nil
 }
 
-// requestResize sends a message to a NATS server with the details of the uploaded picture.
-// It uses the msgpack library to serialize the Picture struct and publishes it to the "picture.uploaded" subject.
+// requestResize sends a request to resize an image.
+//
+// This function uses NATS to request image resizing for the specified picture.
+// It marshals the picture data, sends the request, and processes the response.
+//
+// Parameters:
+//   - picture: The Picture struct containing the image information
+//
+// Returns:
+//   - error: An error if the request, marshaling, or response processing fails
 func requestResize(picture models.Picture) error {
 
 	nc := utils.NewNatsClient()
@@ -110,8 +147,18 @@ func requestResize(picture models.Picture) error {
 	return nil
 }
 
-// saveFile handles the actual file upload process to MinIO storage
-// It takes a multipart.FileHeader as input and uploads the file to the specified bucket
+// saveFile handles the actual file upload process to MinIO storage.
+//
+// This function opens the file, reads its content, generates a checksum,
+// and uploads it to the specified MinIO bucket. It returns the Picture struct
+// containing the file information or an error if the upload fails.
+//
+// Parameters:
+//   - file: The multipart.FileHeader containing the file information
+//
+// Returns:
+//   - models.Picture: The Picture struct containing the file information
+//   - error: An error if the file upload fails
 func saveFile(file *multipart.FileHeader) (models.Picture, error) {
 	minioClient := utils.NewMinioClient()
 
@@ -143,8 +190,6 @@ func saveFile(file *multipart.FileHeader) (models.Picture, error) {
 		return models.Picture{}, errors.New("file already exists")
 	}
 
-	// TODO: Refactor this function to use the utils functions
-
 	if err := utils.PutObject(minioClient, bucketName, objectName, fileBytes); err != nil {
 		return models.Picture{}, err
 	}
@@ -160,9 +205,14 @@ func saveFile(file *multipart.FileHeader) (models.Picture, error) {
 	return picture, nil
 }
 
-// uploadHandler handles the HTTP POST request for file uploads
-// It verifies the request method, retrieves the file from the form,
-// and calls uploadFile to handle the actual upload process
+// uploadHandler handles the HTTP POST request for file uploads.
+//
+// This function retrieves the file from the form data, saves it to MinIO storage,
+// requests image resizing, and extracts metadata. It returns appropriate HTTP responses
+// based on the success or failure of these operations.
+//
+// Parameters:
+//   - c: The gin.Context containing the HTTP request information
 func uploadHandler(c *gin.Context) {
 	// Retrieve the file from the form data
 	file, err := c.FormFile("file")
@@ -205,6 +255,14 @@ func uploadHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "File handled", "filename": file.Filename})
 }
 
+// getAllHandler handles the HTTP GET request to retrieve all picture metadata.
+//
+// This function requests all picture metadata from the database service and
+// returns it as a JSON response. It handles errors appropriately and returns
+// appropriate HTTP responses.
+//
+// Parameters:
+//   - c: The gin.Context containing the HTTP request information
 func getAllHandler(c *gin.Context) {
 	items, err := requestGetAll()
 	if err != nil {

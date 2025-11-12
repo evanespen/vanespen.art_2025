@@ -23,6 +23,17 @@ import (
 	"vanespen.art-microservices/common/utils"
 )
 
+// Insert adds a new picture metadata record to the database.
+//
+// This function appends the new item to the existing records (if any)
+// and writes the updated list to the database.
+//
+// Parameters:
+//   - mc: The MinIO client instance
+//   - item: The PictureMetadatas struct containing the metadata to insert
+//
+// Returns:
+//   - error: An error if the insertion or writing process fails
 func Insert(mc *minio.Client, item models.PictureMetadatas) error {
 	pictures := []models.PictureMetadatas{}
 
@@ -44,6 +55,13 @@ func Insert(mc *minio.Client, item models.PictureMetadatas) error {
 //
 // This function writes a slice of PictureMetadatas to a parquet file
 // in the MinIO database bucket.
+//
+// Parameters:
+//   - mc: The MinIO client instance
+//   - items: A slice of PictureMetadatas containing the metadata to write
+//
+// Returns:
+//   - error: An error if the writing process fails
 func Write(mc *minio.Client, items []models.PictureMetadatas) error {
 	var buf bytes.Buffer
 
@@ -71,6 +89,13 @@ func Write(mc *minio.Client, items []models.PictureMetadatas) error {
 //
 // This function reads the parquet file from the database bucket
 // and returns all PictureMetadatas records.
+//
+// Parameters:
+//   - mc: The MinIO client instance
+//
+// Returns:
+//   - []models.PictureMetadatas: A slice of PictureMetadatas containing all metadata
+//   - error: An error if the reading process fails
 func GetAll(mc *minio.Client) ([]models.PictureMetadatas, error) {
 	obj, err := utils.GetObject(mc, "database", "pictures.parquet")
 	if err != nil {
@@ -97,6 +122,13 @@ func GetAll(mc *minio.Client) ([]models.PictureMetadatas, error) {
 // Get retrieves a specific picture metadata by ID.
 //
 // This function is currently a stub and needs to be implemented.
-func Get(id string) (*models.PictureMetadatas, error) {
+//
+// Parameters:
+//   - id: The ID of the picture metadata to retrieve
+//
+// Returns:
+//   - *models.PictureMetadatas: A pointer to the PictureMetadatas struct
+//   - error: An error if the retrieval process fails
+func Get(id uint64) (*models.PictureMetadatas, error) {
 	return nil, nil
 }

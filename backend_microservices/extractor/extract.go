@@ -24,6 +24,12 @@ type StringOrInt interface {
 //
 // This function takes a string in the format "numerator/denominator"
 // and returns the f-number as a float32 value.
+//
+// Parameters:
+//   - raw: The string representation of the f-number.
+//
+// Returns:
+//   - The f-number as a float32 value.
 func computeFNumber(raw string) float32 {
 	parts := strings.Split(raw, "/")
 	if len(parts) != 2 {
@@ -46,6 +52,12 @@ func computeFNumber(raw string) float32 {
 // computeFocalLength calculates the focal length from a string representation.
 //
 // This function is a wrapper around computeFNumber for focal length values.
+//
+// Parameters:
+//   - raw: The string representation of the focal length.
+//
+// Returns:
+//   - The focal length as a float32 value.
 func computeFocalLength(raw string) float32 {
 	return computeFNumber(raw)
 }
@@ -53,6 +65,12 @@ func computeFocalLength(raw string) float32 {
 // computeMode converts a raw exposure program value to a human-readable mode.
 //
 // This function maps numeric exposure program values to descriptive strings.
+//
+// Parameters:
+//   - raw: The string representation of the exposure program.
+//
+// Returns:
+//   - The exposure program mode as a string.
 func computeMode(raw string) string {
 	switch raw {
 	case "0":
@@ -80,6 +98,13 @@ func computeMode(raw string) string {
 //
 // This function extracts a value from EXIF data and converts it to the
 // specified type (string or int).
+//
+// Parameters:
+//   - fieldName: The name of the EXIF field to retrieve.
+//   - exifData: The EXIF data to extract the value from.
+//
+// Returns:
+//   - The extracted value as the specified type (string or int).
 func getExifValue[T string | int](fieldName exif.FieldName, exifData *exif.Exif) T {
 	value, err := exifData.Get(fieldName)
 	if err != nil {
@@ -104,6 +129,14 @@ func getExifValue[T string | int](fieldName exif.FieldName, exifData *exif.Exif)
 //
 // This function takes a Picture and its byte data, extracts EXIF metadata,
 // and returns a populated PictureMetadatas struct.
+//
+// Parameters:
+//   - picture: The Picture to extract metadata from.
+//   - data: The byte data of the image.
+//
+// Returns:
+//   - models.PictureMetadatas: The extracted metadata
+//   - error: An error if any occurred during extraction.
 func extract(picture models.Picture, data []byte) (models.PictureMetadatas, error) {
 
 	exifData, err := exif.Decode(bytes.NewReader(data))
