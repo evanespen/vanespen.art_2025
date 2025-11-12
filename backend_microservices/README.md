@@ -13,6 +13,7 @@ Image files are stored in *Minio*.
 
 
 ## TODO
-- [ ] exif service
-- [ ] database service
+- [X] exif service
+- [X] database service
+  - [ ] database get by id
 - [ ] tests
